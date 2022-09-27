@@ -1,4 +1,12 @@
 import { Box, Button, Container, TextField, Typography } from "@mui/material";
+import {
+  ConsoleLogger,
+  DefaultDeviceController,
+  DefaultMeetingSession,
+  LogLevel,
+  MeetingSessionConfiguration,
+} from "amazon-chime-sdk-js";
+import axios from "axios";
 import { forwardRef, useEffect, useState } from "react";
 
 export default function App() {
@@ -40,9 +48,28 @@ export default function App() {
   );
 }
 
+const logger = new ConsoleLogger("Logger", LogLevel.INFO);
+const deviceController = new DefaultDeviceController(logger);
+
 async function createMeetingSession({ room }) {
-  console.warn("TODO: create meeting", room);
-  return null;
+  const params = new URLSearchParams([["room", room]]);
+  const response = await axios.get("/chime-integration/meeting-session", {
+    params,
+  });
+
+  const { meetingResponse, attendeeResponse } = response.data;
+  const configuration = new MeetingSessionConfiguration(
+    meetingResponse,
+    attendeeResponse
+  );
+
+  const meetingSession = new DefaultMeetingSession(
+    configuration,
+    logger,
+    deviceController
+  );
+
+  return meetingSession;
 }
 
 function MainHeader() {
