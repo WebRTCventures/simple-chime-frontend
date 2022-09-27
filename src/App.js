@@ -22,7 +22,50 @@ export default function App() {
       return;
     }
 
-    console.warn("Meeting session instance...", meetingSession);
+    const setupInput = async ({ audioId, videoId } = {}) => {
+      if (!audioId || !videoId) {
+        throw new Error("No video nor audio input detected.");
+      }
+
+      if (audioId) {
+        const audioInputDevices =
+          await meetingSession.audioVideo.listAudioInputDevices();
+
+        if (audioInputDevices.length) {
+          await meetingSession.audioVideo.startAudioInput(audioId);
+        }
+      }
+
+      if (videoId) {
+        const videoInputDevices =
+          await meetingSession.audioVideo.listVideoInputDevices();
+
+        if (videoInputDevices.length) {
+          const defaultVideoId = videoInputDevices[0].deviceId;
+          console.warn("starting video input");
+          await meetingSession.audioVideo.startVideoInput(
+            videoId === "default" ? defaultVideoId : videoId
+          );
+          setStartedMediaInputs(true);
+        }
+      }
+    };
+
+    setupInput({ audioId: "default", videoId: "default" }).then(() => {
+      const observer = {
+        audioInputMuteStateChanged: (device, muted) => {
+          console.warn(
+            "Device",
+            device,
+            muted ? "is muted in hardware" : "is not muted"
+          );
+        },
+      };
+
+      meetingSession.audioVideo.addDeviceChangeObserver(observer);
+
+      meetingSession.audioVideo.start();
+    });
   }, [meetingSession]);
 
   return (
@@ -122,6 +165,31 @@ function Controls({ meetingSession }) {
 function VideoLocalOutput({ meetingSession }) {
   const videoRef = useRef(null);
 
+  useEffect(() => {
+    if (!videoRef.current) {
+      return;
+    }
+
+    const videoElement = videoRef.current;
+
+    const observer = {
+      videoTileDidUpdate: (tileState) => {
+        if (!tileState.boundAttendeeId || !tileState.localTile) {
+          return;
+        }
+
+        meetingSession.audioVideo.bindVideoElement(
+          tileState.tileId,
+          videoElement
+        );
+      },
+    };
+
+    meetingSession.audioVideo.addObserver(observer);
+
+    meetingSession.audioVideo.startLocalVideoTile();
+  }, [meetingSession]);
+
   return (
     <Box component="section">
       <h3>Video Local Output</h3>
@@ -147,7 +215,7 @@ function VideoRemoteOutput({ meetingSession }) {
 
 const PeerBox = ({ enabled, ...props }) => (
   <Box
-    display={enabled ? 'inline-block' : 'none'}
+    display={enabled ? "inline-block" : "none"}
     width="200px"
     height="150px"
     backgroundColor="black"
@@ -161,7 +229,7 @@ const Video = forwardRef((props, ref) => (
     ref={ref}
     width="100%"
     height="100%"
-    style={{ objectFit: 'cover' }}
+    style={{ objectFit: "cover" }}
     {...props}
   />
 ));
