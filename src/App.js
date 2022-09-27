@@ -203,6 +203,33 @@ function VideoLocalOutput({ meetingSession }) {
 function VideoRemoteOutput({ meetingSession }) {
   const videoRef = useRef(null);
 
+  useEffect(() => {
+    if (!videoRef.current) {
+      return;
+    }
+
+    const videoElement = videoRef.current;
+
+    const observer = {
+      videoTileDidUpdate: (tileState) => {
+        if (
+          !tileState.boundAttendeeId ||
+          tileState.localTile ||
+          tileState.isContent
+        ) {
+          return;
+        }
+
+        meetingSession.audioVideo.bindVideoElement(
+          tileState.tileId,
+          videoElement
+        );
+      },
+    };
+
+    meetingSession.audioVideo.addObserver(observer);
+  }, [meetingSession]);
+
   return (
     <Box component="section">
       <h3>Video Remote Output</h3>
