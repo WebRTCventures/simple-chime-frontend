@@ -160,8 +160,20 @@ function MainJoiningMeeting({ onJoin }) {
 }
 
 function Controls({ meetingSession }) {
-  return <p>Controls</p>;
+  return (
+    <Box component="section">
+      <h3>Controls</h3>
+      <Button
+        type="button"
+        color="error"
+        onClick={() => meetingSession.audioVideo.stop()}
+      >
+        Stop call
+      </Button>
+    </Box>
+  );
 }
+
 function VideoLocalOutput({ meetingSession }) {
   const videoRef = useRef(null);
 
