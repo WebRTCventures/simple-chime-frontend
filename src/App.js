@@ -7,7 +7,7 @@ import {
   MeetingSessionConfiguration,
 } from "amazon-chime-sdk-js";
 import axios from "axios";
-import { forwardRef, useEffect, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 
 export default function App() {
   const [meetingSession, setMeetingSession] = useState(null);
@@ -119,15 +119,49 @@ function MainJoiningMeeting({ onJoin }) {
 function Controls({ meetingSession }) {
   return <p>Controls</p>;
 }
-
 function VideoLocalOutput({ meetingSession }) {
-  return <p>VideoLocalOutput</p>;
+  const videoRef = useRef(null);
+
+  return (
+    <Box component="section">
+      <h3>Video Local Output</h3>
+      <PeerBox enabled>
+        <Video ref={videoRef} />
+      </PeerBox>
+    </Box>
+  );
 }
 
 function VideoRemoteOutput({ meetingSession }) {
-  return <p>VideoRemoteOutput</p>;
+  const videoRef = useRef(null);
+
+  return (
+    <Box component="section">
+      <h3>Video Remote Output</h3>
+      <PeerBox enabled>
+        <Video ref={videoRef} />
+      </PeerBox>
+    </Box>
+  );
 }
 
-const PeerBox = ({ enabled, ...props }) => null;
+const PeerBox = ({ enabled, ...props }) => (
+  <Box
+    display={enabled ? 'inline-block' : 'none'}
+    width="200px"
+    height="150px"
+    backgroundColor="black"
+    margin="10px"
+    {...props}
+  />
+);
 
-const Video = forwardRef((props, ref) => null);
+const Video = forwardRef((props, ref) => (
+  <video
+    ref={ref}
+    width="100%"
+    height="100%"
+    style={{ objectFit: 'cover' }}
+    {...props}
+  />
+));
