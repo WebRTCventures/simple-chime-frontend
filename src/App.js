@@ -42,7 +42,6 @@ export default function App() {
 
         if (videoInputDevices.length) {
           const defaultVideoId = videoInputDevices[0].deviceId;
-          console.warn("starting video input");
           await meetingSession.audioVideo.startVideoInput(
             videoId === "default" ? defaultVideoId : videoId
           );
@@ -85,6 +84,7 @@ export default function App() {
           <Controls meetingSession={meetingSession} />
           <VideoLocalOutput meetingSession={meetingSession} />
           <VideoRemoteOutput meetingSession={meetingSession} />
+          <AudioOutput meetingSession={meetingSession} />
         </>
       )}
     </Box>
@@ -165,6 +165,18 @@ function Controls({ meetingSession }) {
       <h3>Controls</h3>
       <Button
         type="button"
+        onClick={() => meetingSession.audioVideo.realtimeMuteLocalAudio()}
+      >
+        Mute audio
+      </Button>
+      <Button
+        type="button"
+        onClick={() => meetingSession.audioVideo.realtimeUnmuteLocalAudio()}
+      >
+        Unmute audio
+      </Button>
+      <Button
+        type="button"
         color="error"
         onClick={() => meetingSession.audioVideo.stop()}
       >
@@ -174,11 +186,28 @@ function Controls({ meetingSession }) {
   );
 }
 
+function AudioOutput({ meetingSession }) {
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    if (!audioRef.current) {
+      console.error("No audio element found.");
+      return;
+    }
+
+    const audioElement = audioRef.current;
+    meetingSession.audioVideo.bindAudioElement(audioElement);
+  }, [meetingSession]);
+
+  return <InvisibleAudio ref={audioRef} />;
+}
+
 function VideoLocalOutput({ meetingSession }) {
   const videoRef = useRef(null);
 
   useEffect(() => {
     if (!videoRef.current) {
+      console.error("No local video element found.");
       return;
     }
 
@@ -217,6 +246,7 @@ function VideoRemoteOutput({ meetingSession }) {
 
   useEffect(() => {
     if (!videoRef.current) {
+      console.error("No remote video element found.");
       return;
     }
 
@@ -271,4 +301,8 @@ const Video = forwardRef((props, ref) => (
     style={{ objectFit: "cover" }}
     {...props}
   />
+));
+
+const InvisibleAudio = forwardRef((props, ref) => (
+  <audio ref={ref} style={{ display: "hidden" }} {...props} />
 ));
