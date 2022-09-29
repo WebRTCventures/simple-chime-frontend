@@ -78,15 +78,17 @@ export default function App() {
       justifyContent="center"
     >
       <MainHeader />
-      <MainJoiningMeeting onJoin={handleJoin} />
-      {meetingSession && hasStartedMediaInputs && (
-        <>
-          <Controls meetingSession={meetingSession} />
-          <VideoLocalOutput meetingSession={meetingSession} />
-          <VideoRemoteOutput meetingSession={meetingSession} />
-          <AudioOutput meetingSession={meetingSession} />
-        </>
-      )}
+      <MainContainer>
+        <JoiningMeeting onJoin={handleJoin} />
+        {meetingSession && hasStartedMediaInputs && (
+          <>
+            <Controls meetingSession={meetingSession} />
+            <VideoLocalOutput meetingSession={meetingSession} />
+            <VideoRemoteOutput meetingSession={meetingSession} />
+            <AudioOutput meetingSession={meetingSession} />
+          </>
+        )}
+      </MainContainer>
     </Box>
   );
 }
@@ -125,7 +127,11 @@ function MainHeader() {
   );
 }
 
-function MainJoiningMeeting({ onJoin }) {
+function MainContainer(props) {
+  return <Container component="main" maxWidth="xs" {...props}></Container>;
+}
+
+function JoiningMeeting({ onJoin }) {
   const handleSubmit = (event) => {
     event.preventDefault();
 
@@ -136,7 +142,7 @@ function MainJoiningMeeting({ onJoin }) {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
+    <SectionBox>
       <Typography component="p" variant="body1" marginTop="10px">
         Start or join a conference room.
       </Typography>
@@ -155,14 +161,13 @@ function MainJoiningMeeting({ onJoin }) {
           Start call
         </Button>
       </Box>
-    </Container>
+    </SectionBox>
   );
 }
 
 function Controls({ meetingSession }) {
   return (
-    <Box component="section">
-      <h3>Controls</h3>
+    <SectionBox heading="Controls">
       <Button
         type="button"
         onClick={() => meetingSession.audioVideo.realtimeMuteLocalAudio()}
@@ -182,7 +187,7 @@ function Controls({ meetingSession }) {
       >
         Stop call
       </Button>
-    </Box>
+    </SectionBox>
   );
 }
 
@@ -232,12 +237,11 @@ function VideoLocalOutput({ meetingSession }) {
   }, [meetingSession]);
 
   return (
-    <Box component="section">
-      <h3>Video Local Output</h3>
+    <SectionBox heading="Video Local Output">
       <PeerBox enabled>
         <Video ref={videoRef} />
       </PeerBox>
-    </Box>
+    </SectionBox>
   );
 }
 
@@ -273,12 +277,11 @@ function VideoRemoteOutput({ meetingSession }) {
   }, [meetingSession]);
 
   return (
-    <Box component="section">
-      <h3>Video Remote Output</h3>
+    <SectionBox heading="Video Remote Output">
       <PeerBox enabled>
         <Video ref={videoRef} />
       </PeerBox>
-    </Box>
+    </SectionBox>
   );
 }
 
@@ -306,3 +309,12 @@ const Video = forwardRef((props, ref) => (
 const InvisibleAudio = forwardRef((props, ref) => (
   <audio ref={ref} style={{ display: "hidden" }} {...props} />
 ));
+
+const SectionBox = ({ heading, children, ...props }) => (
+  <Box component="section" paddingTop="10px" paddingBottom="10px" {...props}>
+    <Typography component="h2" variant="h5">
+      {heading}
+    </Typography>
+    {children}
+  </Box>
+);
