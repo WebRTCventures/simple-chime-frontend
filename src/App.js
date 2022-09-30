@@ -1,4 +1,4 @@
-import { Box, Button, TextField, Typography } from "@mui/material";
+import { Box, Button, Container, TextField, Typography } from "@mui/material";
 import {
   ConsoleLogger,
   DefaultDeviceController,
@@ -10,10 +10,13 @@ import {
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
+import MicIcon from "@mui/icons-material/Mic";
+import MicOffIcon from "@mui/icons-material/MicOff";
+import VideocamIcon from "@mui/icons-material/Videocam";
+import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 import CssBaseline from "@mui/material/CssBaseline";
 import {
   InvisibleAudio,
-  MainContainer,
   MainHeader,
   PeerBox,
   SectionBox,
@@ -105,46 +108,44 @@ export default function App() {
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
-      <Box
-        width="100%"
-        paddingBottom="50px"
-        paddingTop="50px"
-        overflow="auto"
-        display="flex"
-        flexDirection="column"
-        justifyContent="center"
-      >
+      <Box width="100vw" height="100vh" overflow="hidden">
         <MainHeader />
-        <MainContainer>
+        <Box component="main" display="flex" flexDirection="column">
+          {!hadFinishedApplication && !isInSession && !joining && (
+            <Container maxWidth="xs">
+              <JoiningMeeting onJoin={handleJoin} />
+            </Container>
+          )}
+          {!hadFinishedApplication && !isInSession && joining && (
+            <Container maxWidth="xs">
+              <SectionBox heading="Joining...">
+                Attempting to join <code>{joining}</code> meeting.
+              </SectionBox>
+            </Container>
+          )}
           {hadFinishedApplication && (
-            <SectionBox heading="Bye, bye!">
-              You can close this window now or...{" "}
-              <Button variant="text" onClick={() => window.location.reload()}>
-                start another meeting
-              </Button>
-            </SectionBox>
+            <Container maxWidth="xs">
+              <SectionBox heading="Bye, bye!">
+                You can close this window now or...{" "}
+                <Button variant="text" onClick={() => window.location.reload()}>
+                  start another meeting
+                </Button>
+              </SectionBox>
+            </Container>
           )}
           {!hadFinishedApplication && isInSession && (
             <>
-              <Controls
-                meetingSession={meetingSession}
-                onLeave={() => setFinishedApplication(true)}
-              />
-              <VideoLocalOutput meetingSession={meetingSession} />
-              <RemoteVideosSection meetingSession={meetingSession} />
+              <StreamingVideosSection meetingSession={meetingSession} />
               <AudioOutput meetingSession={meetingSession} />
               <PinnedVideoSection />
+              <Controls
+                meetingSession={meetingSession}
+                room={joining}
+                onLeave={() => setFinishedApplication(true)}
+              />
             </>
           )}
-          {!hadFinishedApplication && !isInSession && joining && (
-            <SectionBox heading="Joining...">
-              Attempting to join <code>{joining}</code> meeting.
-            </SectionBox>
-          )}
-          {!hadFinishedApplication && !isInSession && !joining && (
-            <JoiningMeeting onJoin={handleJoin} />
-          )}
-        </MainContainer>
+        </Box>
       </Box>
     </ThemeProvider>
   );
@@ -214,7 +215,7 @@ function JoiningMeeting({ onJoin }) {
   );
 }
 
-function Controls({ meetingSession, onLeave }) {
+function Controls({ meetingSession, room, onLeave }) {
   const muteAudio = () => meetingSession.audioVideo.realtimeMuteLocalAudio();
 
   const unmuteAudio = () =>
@@ -232,21 +233,33 @@ function Controls({ meetingSession, onLeave }) {
   };
 
   return (
-    <SectionBox heading="Controls">
+    <SectionBox
+      aria-label="Room controls"
+      position="absolute"
+      bottom="0"
+      width="100%"
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      bgcolor="secondary.contrastText"
+    >
+      <Typography component="strong" variant="body1">
+        (Room {room})
+      </Typography>
       <Button type="button" onClick={muteAudio}>
-        Mute audio
+        <MicOffIcon title="Mute audio" aria-label="Mute audio" />
       </Button>
       <Button type="button" onClick={unmuteAudio}>
-        Unmute audio
+        <MicIcon title="Mute audio" aria-label="Unmute audio" />
       </Button>
       <Button type="button" onClick={muteVideo}>
-        Mute video
+        <VideocamOffIcon title="Mute audio" aria-label="Mute audio" />
       </Button>
       <Button type="button" onClick={unmuteVideo}>
-        Unmute video
+        <VideocamIcon title="Mute audio" aria-label="Unmute video" />
       </Button>
       <Button type="button" color="error" onClick={stopCall}>
-        Stop call
+        <Typography component="strong">End</Typography>
       </Button>
     </SectionBox>
   );
@@ -268,16 +281,16 @@ function AudioOutput({ meetingSession }) {
   return <InvisibleAudio ref={audioRef} />;
 }
 
-function VideoLocalOutput({ meetingSession }) {
-  const videoRef = useRef(null);
+function StreamingVideosSection({ meetingSession }) {
+  const localVideoRef = useRef(null);
 
   useEffect(() => {
-    if (!videoRef.current) {
+    if (!localVideoRef.current) {
       console.error("No local video element found.");
       return;
     }
 
-    const videoElement = videoRef.current;
+    const videoElement = localVideoRef.current;
 
     const observer = {
       videoTileDidUpdate: (tileState) => {
@@ -298,60 +311,6 @@ function VideoLocalOutput({ meetingSession }) {
     meetingSession.audioVideo.startLocalVideoTile();
   }, [meetingSession]);
 
-  return (
-    <SectionBox heading="Video Local Output">
-      <PeerBox enabled>
-        <Video
-          ref={videoRef}
-          className="streaming-video streaming-video-local"
-        />
-      </PeerBox>
-    </SectionBox>
-  );
-}
-
-// eslint-disable-next-line
-function VideoRemoteOutput({ meetingSession }) {
-  const videoRef = useRef(null);
-
-  useEffect(() => {
-    if (!videoRef.current) {
-      console.error("No remote video element found.");
-      return;
-    }
-
-    const videoElement = videoRef.current;
-
-    const observer = {
-      videoTileDidUpdate: (tileState) => {
-        if (
-          !tileState.boundAttendeeId ||
-          tileState.localTile ||
-          tileState.isContent
-        ) {
-          return;
-        }
-
-        meetingSession.audioVideo.bindVideoElement(
-          tileState.tileId,
-          videoElement
-        );
-      },
-    };
-
-    meetingSession.audioVideo.addObserver(observer);
-  }, [meetingSession]);
-
-  return (
-    <SectionBox heading="Video Remote Output (for 1-on-1s)">
-      <PeerBox enabled>
-        <Video ref={videoRef} />
-      </PeerBox>
-    </SectionBox>
-  );
-}
-
-function RemoteVideosSection({ meetingSession }) {
   const videoSlotsRef = useRef(
     Array(25)
       .fill()
@@ -421,15 +380,22 @@ function RemoteVideosSection({ meetingSession }) {
   }, [meetingSession]);
 
   return (
-    <SectionBox component="section" heading="Remote Peers">
-      {!enabledTiles.length && (
-        <Typography component="p">No remote peers have joined yet.</Typography>
-      )}
+    <SectionBox
+      aria-label="Streaming videos"
+      display="flex"
+      justifyContent="center"
+    >
       <Box>
+        <PeerBox title="Local user" enabled>
+          <Video
+            ref={localVideoRef}
+            className="streaming-video streaming-video-local"
+          />
+        </PeerBox>
         {videoSlotsRef.current.map((slot, index) => (
           <PeerBox
             key={index}
-            title={index}
+            title={`Remote user #${index}`}
             enabled={isEnabledTile(slot.tileId)}
           >
             <Video
@@ -461,11 +427,14 @@ function PinnedVideoSection() {
   }, []);
 
   return (
-    <SectionBox heading="Pinned Video">
-      <PeerBox enabled>
-        <Video ref={videoRef} id="video-pinned" />
-      </PeerBox>
-    </SectionBox>
+    <Video
+      ref={videoRef}
+      id="video-pinned"
+      aria-label="Pinned video"
+      style={{ maxHeight: "80vh", objectFit: "contain" }}
+      width={undefined}
+      height={undefined}
+    />
   );
 }
 
@@ -483,6 +452,10 @@ function copyStreamToPinnedVideo(
 
   if (!pinnedVideoElement) {
     console.error("Invalid pinned video element", pinnedVideoElement);
+    return;
+  }
+
+  if (pinnedVideoElement.srcObject === originatingVideoElement.srcObject) {
     return;
   }
 

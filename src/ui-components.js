@@ -1,12 +1,13 @@
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { forwardRef } from "react";
 
-export const MainContainer = (props) => (
-  <Container component="main" maxWidth="xs" {...props}></Container>
-);
-
 export const MainHeader = () => (
-  <Box component="header" textAlign="center">
+  <Box
+    component="header"
+    textAlign="center"
+    paddingTop="20px"
+    paddingBottom="10px"
+  >
     <Typography component="h1" variant="h4">
       Simple Chime App
     </Typography>
@@ -25,12 +26,12 @@ export const PeerBox = ({ enabled, ...props }) => (
   />
 );
 
-export const Video = forwardRef((props, ref) => (
+export const Video = forwardRef(({ style = {}, ...props }, ref) => (
   <video
     ref={ref}
     width="100%"
     height="100%"
-    style={{ objectFit: "cover" }}
+    style={{ objectFit: "cover", ...style }}
     {...props}
   />
 ));
