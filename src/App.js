@@ -1,4 +1,4 @@
-import { Box, Button, Container, TextField, Typography } from "@mui/material";
+import { Box, Button, TextField, Typography } from "@mui/material";
 import {
   ConsoleLogger,
   DefaultDeviceController,
@@ -7,7 +7,15 @@ import {
   MeetingSessionConfiguration,
 } from "amazon-chime-sdk-js";
 import axios from "axios";
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  InvisibleAudio,
+  MainContainer,
+  MainHeader,
+  PeerBox,
+  SectionBox,
+  Video,
+} from "./ui-components";
 
 export default function App() {
   const [meetingSession, setMeetingSession] = useState(null);
@@ -115,20 +123,6 @@ async function createMeetingSession({ room }) {
   );
 
   return meetingSession;
-}
-
-function MainHeader() {
-  return (
-    <Box component="header" textAlign="center">
-      <Typography component="h1" variant="h4">
-        Simple Chime App
-      </Typography>
-    </Box>
-  );
-}
-
-function MainContainer(props) {
-  return <Container component="main" maxWidth="xs" {...props}></Container>;
 }
 
 function JoiningMeeting({ onJoin }) {
@@ -385,37 +379,3 @@ function RemoteVideosSection({ meetingSession }) {
     </Box>
   );
 }
-
-const PeerBox = ({ enabled, ...props }) => (
-  <Box
-    display={enabled ? "inline-block" : "none"}
-    width="200px"
-    height="150px"
-    backgroundColor="black"
-    margin="10px"
-    {...props}
-  />
-);
-
-const Video = forwardRef((props, ref) => (
-  <video
-    ref={ref}
-    width="100%"
-    height="100%"
-    style={{ objectFit: "cover" }}
-    {...props}
-  />
-));
-
-const InvisibleAudio = forwardRef((props, ref) => (
-  <audio ref={ref} style={{ display: "hidden" }} {...props} />
-));
-
-const SectionBox = ({ heading, children, ...props }) => (
-  <Box component="section" paddingTop="10px" paddingBottom="10px" {...props}>
-    <Typography component="h2" variant="h5">
-      {heading}
-    </Typography>
-    {children}
-  </Box>
-);
