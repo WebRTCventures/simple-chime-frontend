@@ -4,7 +4,7 @@
 
 > Very simple video conference app using AWS Chime.
 
-![Simple Chime App running](app-running-with-multiple-users.png)
+![Simple Chime App running](simple-chime-app-running.png)
 
 It requires [the backend](https://github.com/WebRTCventures/simple-chime-backend) running.
 
