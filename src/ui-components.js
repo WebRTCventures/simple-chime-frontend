@@ -9,7 +9,7 @@ export const MainHeader = () => (
     paddingBottom="10px"
   >
     <Typography component="h1" variant="h4">
-      Simple Chime App
+      Simple Amazon Chime SDK App
     </Typography>
     <Typography variant="caption">By WebRTC.Ventures</Typography>
   </Box>

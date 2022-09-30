@@ -1,4 +1,4 @@
-# Simple Chime Application
+# Simple Amazon Chime SDK Application
 
 ## Frontend
 
