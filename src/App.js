@@ -20,11 +20,16 @@ import {
 } from "./ui-components";
 
 export default function App() {
+  const [joining, setJoining] = useState("");
+  const [hadFinishedApplication, setFinishedApplication] = useState(false);
   const [meetingSession, setMeetingSession] = useState(null);
   const [hasStartedMediaInputs, setStartedMediaInputs] = useState(false);
 
-  const handleJoin = (joining) => {
-    createMeetingSession(joining).then((it) => setMeetingSession(it));
+  const handleJoin = (joiningFormData) => {
+    setJoining(joiningFormData.room);
+    createMeetingSession(joiningFormData)
+      .then((it) => setMeetingSession(it))
+      .catch(() => setJoining(""));
   };
 
   useEffect(() => {
@@ -77,6 +82,8 @@ export default function App() {
     });
   }, [meetingSession]);
 
+  const isInSession = !!(meetingSession && hasStartedMediaInputs);
+
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
@@ -91,14 +98,32 @@ export default function App() {
       >
         <MainHeader />
         <MainContainer>
-          <JoiningMeeting onJoin={handleJoin} />
-          {meetingSession && hasStartedMediaInputs && (
+          {hadFinishedApplication && (
+            <SectionBox heading="Bye, bye!">
+              You can close this window now or...{" "}
+              <Button variant="text" onClick={() => window.location.reload()}>
+                start another meeting
+              </Button>
+            </SectionBox>
+          )}
+          {!hadFinishedApplication && isInSession && (
             <>
-              <Controls meetingSession={meetingSession} />
+              <Controls
+                meetingSession={meetingSession}
+                onLeave={() => setFinishedApplication(true)}
+              />
               <VideoLocalOutput meetingSession={meetingSession} />
               <RemoteVideosSection meetingSession={meetingSession} />
               <AudioOutput meetingSession={meetingSession} />
             </>
+          )}
+          {!hadFinishedApplication && !isInSession && joining && (
+            <SectionBox heading="Joining...">
+              Attempting to join <code>{joining}</code> meeting.
+            </SectionBox>
+          )}
+          {!hadFinishedApplication && !isInSession && !joining && (
+            <JoiningMeeting onJoin={handleJoin} />
           )}
         </MainContainer>
       </Box>
@@ -140,10 +165,10 @@ function JoiningMeeting({ onJoin }) {
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    const joining = {
+    const joiningFormData = {
       room: event.target.room.value,
     };
-    onJoin(joining);
+    onJoin(joiningFormData);
   };
 
   return (
@@ -170,7 +195,7 @@ function JoiningMeeting({ onJoin }) {
   );
 }
 
-function Controls({ meetingSession }) {
+function Controls({ meetingSession, onLeave }) {
   const muteAudio = () => meetingSession.audioVideo.realtimeMuteLocalAudio();
 
   const unmuteAudio = () =>
@@ -180,6 +205,11 @@ function Controls({ meetingSession }) {
 
   const unmuteVideo = async () => {
     console.error("Not implemented yet!");
+  };
+
+  const stopCall = async () => {
+    meetingSession.audioVideo.stop();
+    onLeave();
   };
 
   return (
@@ -196,11 +226,7 @@ function Controls({ meetingSession }) {
       <Button type="button" onClick={unmuteVideo}>
         Unmute video
       </Button>
-      <Button
-        type="button"
-        color="error"
-        onClick={() => meetingSession.audioVideo.stop()}
-      >
+      <Button type="button" color="error" onClick={stopCall}>
         Stop call
       </Button>
     </SectionBox>
