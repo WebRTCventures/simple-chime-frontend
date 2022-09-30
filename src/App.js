@@ -5,6 +5,7 @@ import {
   DefaultMeetingSession,
   LogLevel,
   MeetingSessionConfiguration,
+  DefaultActiveSpeakerPolicy,
 } from "amazon-chime-sdk-js";
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
@@ -79,6 +80,23 @@ export default function App() {
       meetingSession.audioVideo.addDeviceChangeObserver(observer);
 
       meetingSession.audioVideo.start();
+
+      const activeSpeakerCallback = (attendeeIds) => {
+        if (!attendeeIds || !attendeeIds.length) {
+          return;
+        }
+
+        const mostActiveAttendeeId = attendeeIds[0];
+        const mostActiveAttendeeElement = document.getElementById(
+          `video-${mostActiveAttendeeId}`
+        );
+        copyStreamToPinnedVideo(mostActiveAttendeeElement);
+      };
+
+      meetingSession.audioVideo.subscribeToActiveSpeakerDetector(
+        new DefaultActiveSpeakerPolicy(),
+        activeSpeakerCallback
+      );
     });
   }, [meetingSession]);
 
@@ -115,6 +133,7 @@ export default function App() {
               <VideoLocalOutput meetingSession={meetingSession} />
               <RemoteVideosSection meetingSession={meetingSession} />
               <AudioOutput meetingSession={meetingSession} />
+              <PinnedVideoSection />
             </>
           )}
           {!hadFinishedApplication && !isInSession && joining && (
@@ -270,6 +289,7 @@ function VideoLocalOutput({ meetingSession }) {
           tileState.tileId,
           videoElement
         );
+        videoElement.id = `video-${tileState.boundAttendeeId}`;
       },
     };
 
@@ -281,7 +301,10 @@ function VideoLocalOutput({ meetingSession }) {
   return (
     <SectionBox heading="Video Local Output">
       <PeerBox enabled>
-        <Video ref={videoRef} />
+        <Video
+          ref={videoRef}
+          className="streaming-video streaming-video-local"
+        />
       </PeerBox>
     </SectionBox>
   );
@@ -386,6 +409,7 @@ function RemoteVideosSection({ meetingSession }) {
           tileState.tileId,
           slot.video
         );
+        slot.video.id = `video-${tileState.boundAttendeeId}`;
       },
       videoTileWasRemoved: (tileId) => {
         mutateVideoSlotsRef(mapToUnassignedSlot(tileId));
@@ -397,8 +421,7 @@ function RemoteVideosSection({ meetingSession }) {
   }, [meetingSession]);
 
   return (
-    <Box component="section">
-      <h3>Other users</h3>
+    <SectionBox component="section" heading="Remote Peers">
       {!enabledTiles.length && (
         <Typography component="p">No remote peers have joined yet.</Typography>
       )}
@@ -409,10 +432,63 @@ function RemoteVideosSection({ meetingSession }) {
             title={index}
             enabled={isEnabledTile(slot.tileId)}
           >
-            <Video ref={(video) => (slot.video = video)} />
+            <Video
+              ref={(video) => (slot.video = video)}
+              className="streaming-video streaming-video-remote"
+            />
           </PeerBox>
         ))}
       </Box>
-    </Box>
+    </SectionBox>
   );
+}
+
+function PinnedVideoSection() {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const workerId = setInterval(() => {
+      if (videoRef.current.srcObject && videoRef.current.srcObject.active) {
+        return;
+      }
+
+      const foundActiveStreamingElement = Array.from(
+        document.getElementsByClassName("streaming-video")
+      ).find((el) => el.srcObject && el.srcObject.active);
+      copyStreamToPinnedVideo(foundActiveStreamingElement, videoRef.current);
+    }, 3000);
+    return () => clearInterval(workerId);
+  }, []);
+
+  return (
+    <SectionBox heading="Pinned Video">
+      <PeerBox enabled>
+        <Video ref={videoRef} id="video-pinned" />
+      </PeerBox>
+    </SectionBox>
+  );
+}
+
+function copyStreamToPinnedVideo(
+  originatingVideoElement,
+  pinnedVideoElement = document.getElementById("video-pinned")
+) {
+  if (!originatingVideoElement || !originatingVideoElement.srcObject) {
+    console.error(
+      "Invalid originating video element/stream",
+      originatingVideoElement
+    );
+    return;
+  }
+
+  if (!pinnedVideoElement) {
+    console.error("Invalid pinned video element", pinnedVideoElement);
+    return;
+  }
+
+  pinnedVideoElement.muted = true;
+  pinnedVideoElement.volume = 0;
+  pinnedVideoElement.setAttributeNode(document.createAttribute("autoplay"));
+  pinnedVideoElement.setAttributeNode(document.createAttribute("playsinline"));
+  pinnedVideoElement.srcObject = originatingVideoElement.srcObject;
 }
