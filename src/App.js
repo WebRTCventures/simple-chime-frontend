@@ -8,6 +8,8 @@ import {
 } from "amazon-chime-sdk-js";
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
 import {
   InvisibleAudio,
   MainContainer,
@@ -76,30 +78,39 @@ export default function App() {
   }, [meetingSession]);
 
   return (
-    <Box
-      width="100%"
-      paddingBottom="50px"
-      paddingTop="50px"
-      overflow="auto"
-      display="flex"
-      flexDirection="column"
-      justifyContent="center"
-    >
-      <MainHeader />
-      <MainContainer>
-        <JoiningMeeting onJoin={handleJoin} />
-        {meetingSession && hasStartedMediaInputs && (
-          <>
-            <Controls meetingSession={meetingSession} />
-            <VideoLocalOutput meetingSession={meetingSession} />
-            <RemoteVideosSection meetingSession={meetingSession} />
-            <AudioOutput meetingSession={meetingSession} />
-          </>
-        )}
-      </MainContainer>
-    </Box>
+    <ThemeProvider theme={darkTheme}>
+      <CssBaseline />
+      <Box
+        width="100%"
+        paddingBottom="50px"
+        paddingTop="50px"
+        overflow="auto"
+        display="flex"
+        flexDirection="column"
+        justifyContent="center"
+      >
+        <MainHeader />
+        <MainContainer>
+          <JoiningMeeting onJoin={handleJoin} />
+          {meetingSession && hasStartedMediaInputs && (
+            <>
+              <Controls meetingSession={meetingSession} />
+              <VideoLocalOutput meetingSession={meetingSession} />
+              <RemoteVideosSection meetingSession={meetingSession} />
+              <AudioOutput meetingSession={meetingSession} />
+            </>
+          )}
+        </MainContainer>
+      </Box>
+    </ThemeProvider>
   );
 }
+
+const darkTheme = createTheme({
+  palette: {
+    mode: "dark",
+  },
+});
 
 const logger = new ConsoleLogger("Logger", LogLevel.INFO);
 const deviceController = new DefaultDeviceController(logger);
