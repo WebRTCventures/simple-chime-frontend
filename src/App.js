@@ -1,4 +1,7 @@
 import { Box, Button, Container, TextField, Typography } from "@mui/material";
+// import AWS from "aws-sdk";
+import * as AWS from "aws-sdk/global";
+import * as Chime from "aws-sdk/clients/chime";
 import {
   ConsoleLogger,
   DefaultDeviceController,
@@ -6,6 +9,8 @@ import {
   LogLevel,
   MeetingSessionConfiguration,
   DefaultActiveSpeakerPolicy,
+  MessagingSessionConfiguration,
+  DefaultMessagingSession,
 } from "amazon-chime-sdk-js";
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
@@ -162,22 +167,73 @@ const deviceController = new DefaultDeviceController(logger);
 
 async function createMeetingSession({ room }) {
   const params = new URLSearchParams([["room", room]]);
-  const response = await axios.get("/chime-integration/meeting-session", {
-    params,
-  });
+  const meetingSessionResponse = await axios.get(
+    "/chime-integration/meeting-session",
+    {
+      params,
+    }
+  );
 
-  const { meetingResponse, attendeeResponse } = response.data;
+  const { meetingResponse, attendeeResponse } = meetingSessionResponse.data;
   const configuration = new MeetingSessionConfiguration(
     meetingResponse,
     attendeeResponse
   );
-
   const meetingSession = new DefaultMeetingSession(
     configuration,
     logger,
     deviceController
   );
 
+  const messagingSessionResponse = await axios.get(
+    `/chime-integration/messaging-session/${meetingResponse.Meeting.MeetingId}`
+  );
+  const {
+    msgChannelMembershipResponse,
+    endpointResponse,
+    accessKeyId,
+    secretAccessKey,
+    region,
+  } = messagingSessionResponse.data;
+  const chime = new Chime({
+    region,
+    credentials: {
+      accessKeyId: accessKeyId,
+      secretAccessKey: secretAccessKey,
+      // sessionToken: "sessionToken"
+    },
+  });
+  const messagingConfiguration = new MessagingSessionConfiguration(
+    msgChannelMembershipResponse.Member.Arn,
+    meetingResponse.Meeting.MeetingId,
+    endpointResponse.Endpoint.Url,
+    chime,
+    AWS
+  );
+  window.messagingConfiguration = messagingConfiguration;
+  const messagingSession = new DefaultMessagingSession(
+    messagingConfiguration,
+    logger
+  );
+  messagingSession.addObserver({
+    messagingSessionDidStart: () => {
+      console.log("Messaging Connection started!");
+    },
+    messagingSessionDidReceiveMessage: (message) => {
+      console.log("Messaging Connection received message", message);
+    },
+  });
+  window.messagingSession = messagingSession;
+
+  window.sendMessage = async function sendMessage(content) {
+    return await axios.post("/chime-integration/message", {
+      channelMembership: msgChannelMembershipResponse,
+      content,
+    });
+  };
+
+  window.meetingSession = meetingSession;
+  messagingSession.start();
   return meetingSession;
 }
 
