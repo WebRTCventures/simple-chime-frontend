@@ -36,8 +36,13 @@ export async function retrieveSpeechAnalysisTopics(
   accessToken = window.accessToken,
   conversationId = window.conversationId
 ) {
+  const customTopicVocabulary = ["sad", "happy", "concerned"];
+  const stringifiedQueryParams = encodeURI(
+    "sentiment=true&" +
+      customTopicVocabulary.map((it) => `customTopicVocabulary=${it}`).join("&")
+  );
   const response = await fetch(
-    `https://api.symbl.ai/v1/conversations/${conversationId}/topics?sentiment=true`,
+    `https://api.symbl.ai/v1/conversations/${conversationId}/topics?${stringifiedQueryParams}`,
     {
       method: "get",
       headers: {
@@ -47,5 +52,5 @@ export async function retrieveSpeechAnalysisTopics(
     }
   );
   const responseBody = await response.json();
-  return responseBody.accessToken;
+  return responseBody;
 }

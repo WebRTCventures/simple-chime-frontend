@@ -1,4 +1,5 @@
 import { Box, Button, Container, TextField, Typography } from "@mui/material";
+import Sentiment from "sentiment";
 // import AWS from "aws-sdk";
 import * as AWS from "aws-sdk/global";
 import * as Chime from "aws-sdk/clients/chime";
@@ -289,6 +290,8 @@ async function createMeetingSession({ room }) {
       }
     };
 
+    const sentiment = new Sentiment();
+
     // Fired when a message is received from the WebSocket server
     ws.onmessage = (event) => {
       // You can find the conversationId in event.message.data.conversationId;
@@ -299,7 +302,12 @@ async function createMeetingSession({ room }) {
       }
       if (data.type === "message_response") {
         for (let message of data.messages) {
-          console.log("Transcript (more accurate): ", message.payload.content);
+          const sentimentResult = sentiment.analyze(message.payload.content);
+          console.log(
+            "Transcript (more accurate): ",
+            message.payload.content,
+            sentimentResult
+          );
         }
       }
       if (data.type === "topic_response") {
