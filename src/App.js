@@ -27,6 +27,7 @@ import {
   PeerBox,
   SectionBox,
   Video,
+  TranscriptText,
 } from "./ui-components";
 import {
   retrieveSpeechAnalysisAccessToken,
@@ -39,10 +40,14 @@ export default function App() {
   const [hadFinishedApplication, setFinishedApplication] = useState(false);
   const [meetingSession, setMeetingSession] = useState(null);
   const [hasStartedMediaInputs, setStartedMediaInputs] = useState(false);
+  const [transcript, setTranscript] = useState("Text Transcript");
+  window.setTranscript = setTranscript;
+  const [nivelSentimental, setNivelSentimental] = useState(0);
+  window.setNivelSentimental = setNivelSentimental;
 
   const handleJoin = (joiningFormData) => {
     setJoining(joiningFormData.room);
-    createMeetingSession(joiningFormData)
+    createMeetingSession(joiningFormData, setTranscript, setNivelSentimental)
       .then((it) => setMeetingSession(it))
       .catch(() => setJoining(""));
   };
@@ -146,7 +151,11 @@ export default function App() {
           )}
           {!hadFinishedApplication && isInSession && (
             <>
-              <StreamingVideosSection meetingSession={meetingSession} />
+              <StreamingVideosSection
+                meetingSession={meetingSession}
+                transcript={transcript}
+                nivelSentimental={nivelSentimental}
+              />
               <AudioOutput meetingSession={meetingSession} />
               <PinnedVideoSection />
               <Controls
@@ -171,7 +180,11 @@ const darkTheme = createTheme({
 const logger = new ConsoleLogger("Logger", LogLevel.INFO);
 const deviceController = new DefaultDeviceController(logger);
 
-async function createMeetingSession({ room }) {
+async function createMeetingSession({
+  room,
+  setTranscript,
+  setNivelSentimental,
+}) {
   const params = new URLSearchParams([["room", room]]);
   const meetingSessionResponse = await axios.get(
     "/chime-integration/meeting-session",
@@ -238,7 +251,7 @@ async function createMeetingSession({ room }) {
     });
   };
 
-  window.enableTranscription = async function enableTranscription() {
+  window.enableTranscription = async () => {
     const audioElement = document.getElementById("audio-output");
     if (!audioElement || !audioElement.srcObject) {
       console.error("Invalid audio element.", audioElement);
@@ -308,6 +321,8 @@ async function createMeetingSession({ room }) {
             message.payload.content,
             sentimentResult
           );
+          window.setTranscript(message.payload.content);
+          window.setNivelSentimental(sentimentResult.score);
         }
       }
       if (data.type === "topic_response") {
@@ -473,7 +488,11 @@ function AudioOutput({ meetingSession }) {
   return <InvisibleAudio id="audio-output" ref={audioRef} />;
 }
 
-function StreamingVideosSection({ meetingSession }) {
+function StreamingVideosSection({
+  meetingSession,
+  transcript,
+  nivelSentimental,
+}) {
   const localVideoRef = useRef(null);
 
   useEffect(() => {
@@ -578,11 +597,24 @@ function StreamingVideosSection({ meetingSession }) {
       justifyContent="center"
     >
       <Box>
-        <PeerBox title="Local user" enabled>
+        <PeerBox
+          title="Local user"
+          enabled
+          style={
+            nivelSentimental === 0
+              ? {}
+              : nivelSentimental > 0
+              ? { border: "4px solid green" }
+              : nivelSentimental < 0
+              ? { border: "4px solid red" }
+              : {}
+          }
+        >
           <Video
             ref={localVideoRef}
             className="streaming-video streaming-video-local"
           />
+          <TranscriptText text={transcript} />
         </PeerBox>
         {videoSlotsRef.current.map((slot, index) => (
           <PeerBox

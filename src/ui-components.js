@@ -48,3 +48,14 @@ export const SectionBox = ({ heading, children, ...props }) => (
     {children}
   </Box>
 );
+
+export const TranscriptText = (props) => (
+  <Box
+    component="header"
+    textAlign="center"
+    paddingTop="20px"
+    paddingBottom="10px"
+  >
+    <Typography variant="caption">{props.text}</Typography>
+  </Box>
+);
